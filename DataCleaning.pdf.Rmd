@@ -1,0 +1,217 @@
+---
+title: "DataCleaning.pdf"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+# installing packages needed
+#install.packages("readr")
+#install.packages("dplyr")
+
+library(readr)
+library(dplyr)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+# importing the CSV
+GameStats = read_csv("/Users/hannahbrown/Downloads/Practice1/GameStats.csv")
+
+#getting a first look at the data set, looking at variable names and number of rows
+head(GameStats)
+names(GameStats)
+nrow(GameStats)
+```
+
+```{r}
+# looking at the unique values of the variable School
+x <- unique(GameStats$School)
+```
+
+```{r}
+# looking at the unique values of the Opponent variable to see what schools need to be renamed for easier joining
+y <- unique(GameStats$Opponent)
+
+```
+
+```{r}
+#arranging the games by date to make it easier to see the corresponding rows for each game
+GameStats <- GameStats %>% arrange(Date)
+head(GameStats)
+```
+
+
+
+
+```{r}
+# One Row For Each Game
+# renaming Schools in the Opponent column to match the names in the School column
+
+GameStats <- GameStats %>% mutate(Opponent = ifelse(Opponent == "Texas-San Antonio", "UTSA", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Central Florida", "UCF", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Mississippi", "Ole Miss", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Louisiana State", "LSU", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Southern California", "USC", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Pittsburgh", "Pitt", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Southern Methodist", "SMU", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Texas-El Paso", "UTEP", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Nevada-Las Vegas", "UNLV", Opponent)) %>% mutate(Opponent = ifelse(Opponent == "Alabama-Birmingham", "UAB", Opponent))
+
+#creating a data frame with all of the away games, looking at the number of rows
+awaygames <- GameStats %>% filter(...4 == "@")
+
+nrow(awaygames)
+head(awaygames,50)
+
+
+
+```
+
+```{r}
+# again looking at the unique values in the School columnn
+unique(GameStats$School)
+```
+
+```{r}
+# again looking at the unique values in the Opponent column
+unique(GameStats$Opponent)
+```
+
+
+
+```{r}
+# creating a data frame with the stats of all of the home teams, checking the number of rows for home team stats
+home <- GameStats %>% filter(is.na(...4))
+nrow(home)
+```
+
+
+```{r}
+# creating a data frame with all of the stats for the home and neutral game teams, checking the number of games
+home_neutral_games <- GameStats %>% filter(...4!="@"|is.na(...4))
+
+nrow(home_neutral_games)
+head(home_neutral_games)
+```
+
+```{r}
+# creating a data frame with all of the neutral games, checking the number of neutral games
+neutral <- GameStats %>% filter(...4=="N")
+
+nrow(neutral)
+head(neutral)
+```
+
+
+```{r}
+# creating a data frame with all of the stats for the neutral and away game teams
+neutral_away_games <- GameStats %>% filter(!is.na(...4))
+
+nrow(neutral_away_games)
+head(neutral_away_games, 20)
+```
+
+```{r}
+# merging the home, away, and neutral game datasets together so there is one row for each game
+joined <- home_neutral_games %>% full_join(neutral_away_games, c("School" = "Opponent", "Date"))
+
+nrow(joined)
+
+```
+
+
+
+
+```{r}
+# Remove games played on a neutral field (value "N" in the 4th column)
+noneutral <- joined %>%
+  filter(...4.y!="N")
+
+nrow(noneutral)
+head(noneutral,50)
+```
+
+
+
+```{r}
+## Data Cleaning: Part C
+# First 3 variables in the dataset are Date, Home, and Away
+clean_data_c <- noneutral %>% relocate(Date, .before = School) %>% relocate(Opponent, .after = School) %>%
+  rename(Home = School) %>%
+  rename(Away = Opponent)
+  
+```
+
+
+```{r}
+## Data Cleaning: Part D
+# Creatung the HomeWins binary Variable with a 1 if the home team wow, and a 0 if otherwise
+
+clean_data_d <- clean_data_c %>% mutate(HomeWins = ifelse(...6.x=="W", 1, 0)) %>% 
+  relocate(HomeWins, .after = Away)
+```
+
+```{r}
+## Data Cleaning: Part E
+#Creating 2 Variables for Each Team Statistic
+# Renaming variables to indicate if they are stats for the Home or Away Team, Putting them in order
+
+clean_data_e <- clean_data_d %>% 
+  rename(HPassCmp = PassCmp.x) %>% relocate(HPassCmp, .after = HomeWins) %>%
+  rename(APassCmp = PassCmp.y) %>% relocate(APassCmp, .after = HPassCmp) %>%
+  rename(HPassAtt = PassAtt.x) %>% relocate(HPassAtt, .after = APassCmp) %>%
+  rename(APassAtt = PassAtt.y) %>% relocate(APassAtt, .after = HPassAtt) %>%
+  rename(HPassPct = PassPct.x) %>% relocate(HPassPct, .after = APassAtt) %>%
+  rename(APassPct = PassPct.y) %>% relocate(APassPct, .after = HPassPct) %>%
+  rename(HPassYds = PassYds.x) %>% relocate(HPassYds, .after = APassPct) %>%
+  rename(APassYds = PassYds.y) %>% relocate(APassYds, .after = HPassYds) %>%
+  rename(HPassTD = PassTD.x) %>% relocate(HPassTD, .after = APassYds) %>%
+  rename(APassTD = PassTD.y) %>% relocate(APassTD, .after = HPassTD) %>%
+  rename(HRushAtt = RushAtt.x) %>% relocate(HRushAtt, .after = APassTD) %>%
+  rename(ARushAtt = RushAtt.y) %>% relocate(ARushAtt, .after = HRushAtt) %>%
+  rename(HRushYds = RushYds.x) %>% relocate(HRushYds, .after = ARushAtt) %>%
+  rename(ARushYds = RushYds.y) %>% relocate(ARushYds, .after = HRushYds) %>%
+  rename(HRushAvg = RushAvg.x) %>% relocate(HRushAvg, .after = ARushYds) %>%
+  rename(ARushAvg = RushAvg.y) %>% relocate(ARushAvg, .after = HRushAvg) %>%
+  rename(HRushTD = RushTD.x) %>% relocate(HRushTD, .after = ARushAvg) %>%
+  rename(ARushTD = RushTD.y) %>% relocate(ARushTD, .after = HRushTD) %>%
+  rename(HXPM = XPM.x) %>% relocate(HXPM, .after = ARushTD) %>%
+  rename(AXPM = XPM.y) %>% relocate(AXPM, .after = HXPM) %>%
+  rename(HXPA = XPA.x) %>% relocate(HXPA, .after = AXPM) %>%
+  rename(AXPA = XPA.y) %>% relocate(AXPA, .after = HXPA) %>%
+  rename(HXPPercent = XPPercent.x) %>% relocate(HXPPercent, .after = AXPA) %>%
+  rename(AXPPercent = XPPercent.y) %>% relocate(AXPPercent, .after = HXPPercent) %>%
+  rename(HFGM = FGM.x) %>% relocate(HFGM, .after = AXPPercent) %>%
+  rename(AFGM = FGM.y) %>% relocate(AFGM, .after = HFGM) %>%
+  rename(HFGA = FGA.x) %>% relocate(HFGA, .after = AFGM) %>%
+  rename(AFGA = FGA.y) %>% relocate(AFGA, .after = HFGA) %>%
+  rename(HFGPercent = FGPercent.x) %>% relocate(HFGPercent, .after = AFGA) %>%
+  rename(AFGPercent = FGPercent.y) %>% relocate(AFGPercent, .after = HFGPercent) %>%
+  rename(HKickPts = KickPts.x) %>% relocate(HKickPts, .after = AFGPercent) %>%
+  rename(AKickPts = KickPts.y) %>% relocate(AKickPts, .after = HKickPts) %>%
+  rename(HFum = Fum.x) %>% relocate(HFum, .after = AKickPts) %>%
+  rename(AFum = Fum.y) %>% relocate(AFum, .after = HFum) %>%
+  rename(HInt = Int.x) %>% relocate(HInt, .after = AFum) %>%
+  rename(AInt = Int.y) %>% relocate(AInt, .after = HInt) %>%
+  rename(HTotalTO = TotalTO.x) %>% relocate(HTotalTO, .after = AInt) %>%
+  rename(ATotalTO = TotalTO.y) %>% relocate(ATotalTO, .after = HTotalTO)
+  
+```
+
+
+```{r}
+# Removing Unnecessary Variables
+final_clean_data <- clean_data_e %>% select(-"G#.x", -...4.x, -...6.x, -School.y, -"G#.y", -...4.y, -...6.y)
+```
+
+
+```{r}
+# Writing the final cleaned dataset to my computer and saving as CleanedGameStats.csv
+write.csv(final_clean_data, "CleanedGameStats.csv")
+```
+
